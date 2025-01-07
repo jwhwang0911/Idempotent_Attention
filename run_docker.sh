@@ -1,9 +1,11 @@
 docker build --build-arg USER_NAME="jwhwang0911" . -t dl_container
-DIR=`pwd`
-nvidia-docker run \
+
+DIR=$(pwd)
+docker run \
     --rm \
-    -v ${DIR}/Data:/Data \
-    -v ${DIR}/Code:/Code \
-    -v ${DIR}/Result:/Result \
+    --gpus all \
+    -v ${DIR}/Data:/workspace/Data \
+    -v ${DIR}/Code:/workspace/Code \
+    -v ${DIR}/Result:/workspace/Result \
     --shm-size=8G \
-    -it dl_container /bin/bash;
+    -it dl_container /bin/bash
