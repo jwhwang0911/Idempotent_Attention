@@ -1,2 +1,5 @@
-./Data
-./Result
+Data
+Result
+Code/wandb
+*/__pycache__
+*/*/__pycache__

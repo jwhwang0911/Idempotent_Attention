@@ -25,6 +25,14 @@ RUN pip install \
     einops \
     natten==0.17.1+torch220cu121 -f https://shi-labs.com/natten/wheels/
 
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libglu1-mesa \
+    mesa-utils \
+    libglib2.0-0
+
+
 # 변경된 VOLUME 경로
 VOLUME /workspace/Data
 VOLUME /workspace/Code
