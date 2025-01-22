@@ -141,8 +141,7 @@ def train(
     # * Load Model when the previous train has been stopped
     if args.loadModel:
         model.load_state_dict(torch.load(args.modelPath))
-        
-    discriminator = models.DiscriminatorVGG128(3, 64).to(device)
+
     
     # [INFO] 4. Loss & Optimizer Define
     l1_loss     = L1ReconstructionLoss().to(device)
@@ -158,12 +157,6 @@ def train(
     )
     scheduler_generator = lr_scheduler.MultiStepLR(
         optimizer_generator, milestones=milestones, gamma=0.5
-    )
-    optimizer_discriminator = optim.Adam(
-        discriminator.parameters(), lr=TRAIN_ARGS["lrD"], betas=(0.9, 0.999), eps=1e-8
-    )
-    scheduler_discriminator = lr_scheduler.MultiStepLR(
-        optimizer_discriminator, milestones=milestones, gamma=0.5
     )
     
     # [INFO] 5. Informations and variables for Logs
@@ -190,36 +183,17 @@ def train(
             
             # ! AFGSA will return dummy, dummy, output
             sqr_attn, attn, output = model(noisy_input, aux_input)
-            
-            # | Discriminator Optimization
-            optimizer_discriminator.zero_grad()
-            pred_d_fake = discriminator(output.detach())
-            pred_d_real = discriminator(ref)
-            
-            try:
-                loss_d_fake = gan_loss(pred_d_fake, False)
-                loss_d_real = gan_loss(pred_d_real, True)
-                loss_gp     = gp_loss(discriminator, ref, output.detach())
-            except:
-                break
-            
-            discriminator_loss = (loss_d_fake + loss_d_real) / 2 + TRAIN_ARGS["gpLossW"] * loss_gp
-            discriminator_loss.backward()
-            optimizer_discriminator.step()
-            accumulated_discriminator_loss += discriminator_loss.item() / TRAIN_ARGS["BatchSize"]
-            
+                        
             # | Generator Optimization
             optimizer_generator.zero_grad()
-            pred_g_fake = discriminator(output.detach())
             
             try:
-                loss_g_fake = gan_loss(pred_g_fake, True)
                 loss_l1     = l1_loss(output, ref)
                 loss_idp    = idp_loss(attn, sqr_attn)
             except:
                 break
             
-            generator_loss = TRAIN_ARGS["ganLossW"] * loss_g_fake + TRAIN_ARGS["l1LossW"] * loss_l1 + TRAIN_ARGS["idLossW"] * loss_idp
+            generator_loss = TRAIN_ARGS["l1LossW"] * loss_l1 + TRAIN_ARGS["idLossW"] * loss_idp
             generator_loss.backward()
             optimizer_generator.step()
             accumulated_generator_loss += generator_loss.item() / TRAIN_ARGS["BatchSize"]
@@ -234,9 +208,9 @@ def train(
             
             # | Logging (Terminal & Wandb) & Validation
             print(
-                "\r\t-Epoch : %d\t Took %f sec \tIteration : %d/%d \t Iter Took : %f sec\tG Loss : %f \tD Loss : %f, IDP Loss : %f"
-                % (epoch+1, end-start, i_batch + 1, total_iteraions, iter_took, loss_l1.item(), discriminator_loss.item(), loss_idp.item()),
-                end=""
+                "\r\t-Epoch : %d\t Took %f sec \tIteration : %d/%d \t Iter Took : %f sec\tG Loss : %f \t IDP Loss : %f"
+                % (epoch+1, end-start, i_batch + 1, total_iteraions, iter_took, loss_l1.item(), loss_idp.item()),
+                end="\n"
             )
             
             if(iteration + 1) % TRAIN_ARGS["NumItersForEval"] == 0:
@@ -303,10 +277,8 @@ def train(
             )
         )
         
-        scheduler_discriminator.step()
         scheduler_generator.step()
         accumulated_generator_loss = 0.0
-        accumulated_discriminator_loss = 0.0
         
         with torch.no_grad():
             with open(os.path.join(root_save_path, "loss.txt"), "a") as f:
@@ -319,7 +291,6 @@ def train(
                         ))
 
             torch.save(model.state_dict(), os.path.join(current_save_path, "G.pt"))
-            torch.save(discriminator.state_dict(), os.path.join(current_save_path, "D.pt"))
                 
         print()
     wandb.finish()

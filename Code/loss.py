@@ -118,7 +118,7 @@ class L1ReconstructionLoss(nn.Module):
 class IdempotentLoss(nn.Module):
     def __init__(self):
         super(IdempotentLoss, self).__init__()
-        self.loss = torch.nn.MSELoss()
+        self.loss = torch.nn.L1Loss()
 
     def forward(self, matrix, sqr_matrix):
         loss = self.loss(matrix, sqr_matrix)

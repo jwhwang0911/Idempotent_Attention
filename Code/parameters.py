@@ -13,15 +13,16 @@ IMAGE_CONFIG : dict = {
     # "NumPatches" : 30,
     "NumPatches" : 200,
     "PatchSize" : 128,
-    "TileSize" : 4,
-    "SCENE_NAMES" : ["white-room", "coffee"]
+    "TileSize" : 16,
+    # "SCENE_NAMES" : ["white-room", "coffee"]
+    "SCENE_NAMES" : ["bedroom", "coffee", "contemporary-bathroom","kitchen", "staircase2", "white-room"]
 }
 
 TRAIN_ARGS : dict = {
     "Seed" : 356,
     "NumItersForEval" : 10,
     "BatchSize" : 4,
-    "MaxSteps" : 20,
+    "MaxSteps" : 12,
     
     "LearningRate" : 0.0001,
     "lrMilestone" : 3,
@@ -31,5 +32,5 @@ TRAIN_ARGS : dict = {
     "l1LossW" : 1.0,
     "ganLossW" : 5e-3,
     "gpLossW" : 10.0,
-    "idLossW" : 1.0
+    "idLossW" : 0.1
 }
