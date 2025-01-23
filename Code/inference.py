@@ -18,7 +18,7 @@ DEPERMUTE = [1, 2, 0]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", type=str, default="Idempotent", choices=["Idempotent", "AFGSA"])
-parser.add_argument("--modelPath", type=str, default="/workspace/Result/idp_w_5/model_epoch7/G.pt")
+parser.add_argument("--modelPath", type=str, default="/workspace/Result/Idempotent/model_epoch9/G.pt")
 args, extras = parser.parse_known_args()
 
 # [INFO] Define Model
@@ -184,4 +184,4 @@ def test_crop():
     exr.write(sqrsqrwritepath, sqrsqr_write)
     
     
-test_all()
+test_crop()
