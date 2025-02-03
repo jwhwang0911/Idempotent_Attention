@@ -13,7 +13,7 @@ IMAGE_CONFIG : dict = {
     # "NumPatches" : 30,
     "NumPatches" : 200,
     "PatchSize" : 128,
-    "TileSize" : 16,
+    "TileSize" : 4,
     # "SCENE_NAMES" : ["white-room", "coffee"]
     "SCENE_NAMES" : ["bedroom", "coffee", "contemporary-bathroom","kitchen", "staircase2", "white-room"]
 }

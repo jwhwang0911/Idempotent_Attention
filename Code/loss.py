@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch import autograd
 import torchvision.models as models
 import numpy as np
-
+from parameters import IMAGE_CONFIG
 
 Tensor = torch.cuda.FloatTensor
 
@@ -119,9 +119,13 @@ class IdempotentLoss(nn.Module):
     def __init__(self):
         super(IdempotentLoss, self).__init__()
         self.loss = torch.nn.L1Loss()
+        self.div_loss = torch.nn.MSELoss()
 
     def forward(self, matrix, sqr_matrix):
-        loss = self.loss(matrix, sqr_matrix)
+        means = torch.ones_like(matrix) / (IMAGE_CONFIG["TileSize"] * IMAGE_CONFIG["TileSize"])
+        div_reg = self.div_loss(matrix, means)
+        
+        loss = self.loss(matrix, sqr_matrix) - 0.1*div_reg
         return loss
 
 class BCELoss(nn.Module):

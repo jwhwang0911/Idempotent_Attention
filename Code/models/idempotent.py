@@ -2,7 +2,6 @@
 from .afgsa import *
 
 EPSILON =  0.01
-TILE_SIZE = 4
 
 
 class Idempotent_WNet(nn.Module):
@@ -11,6 +10,7 @@ class Idempotent_WNet(nn.Module):
         aux_in_ch,
         base_ch,
         num_sa=5,
+        tile_size = 4,
         block_size=8,
         halo_size=3,
         num_heads=4,
@@ -29,7 +29,7 @@ class Idempotent_WNet(nn.Module):
             num_gcp
         )
         
-        self.IdempotentWeight = Decoder_Idempotent(base_ch)
+        self.IdempotentWeight = Decoder_Idempotent(base_ch, tile_size)
         
     def forward(self, noisy, aux):
         out = self.AFGSANet(noisy, aux)
@@ -38,7 +38,7 @@ class Idempotent_WNet(nn.Module):
         
 # todo : Additional Experiment [Downsampling and infer kernel tensor as {B, K^2, H/4, W/4} ]
 class Decoder_Idempotent(nn.Module):
-    def __init__(self, base_ch):
+    def __init__(self, base_ch, tile_size):
         super(Decoder_Idempotent, self).__init__()
         self.base_ch = base_ch
         self.qk = conv_block(
@@ -49,6 +49,11 @@ class Decoder_Idempotent(nn.Module):
             padding_mode="reflect",
             act_type="leakyrelu",
         )
+        
+        self.q_act = torch.nn.Tanh()
+        self.k_act = torch.nn.Tanh()
+        
+        self.TILE_SIZE = tile_size
         # self.qk = nn.Linear(
         #     base_ch, base_ch * 2, bias=True
         # )
@@ -62,27 +67,31 @@ class Decoder_Idempotent(nn.Module):
 
         q, k = qk[:, :c, :, :], qk[:, c : 2 * c, :, :]
         q = rearrange(
-            q, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=TILE_SIZE, t2=TILE_SIZE
+            q, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=self.TILE_SIZE, t2=self.TILE_SIZE
         )
+        
+        q = self.q_act(q)
 
         # print(q.shape)
 
         k = rearrange(
-            k, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=TILE_SIZE, t2=TILE_SIZE
+            k, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=self.TILE_SIZE, t2=self.TILE_SIZE
         )
+        
+        k = self.k_act(k)
 
         # print(k.shape)
 
         v = rearrange(
-            noisy, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=TILE_SIZE, t2=TILE_SIZE
+            noisy, "b c (h t1) (w t2) -> (b h w) (t1 t2) c", t1=self.TILE_SIZE, t2=self.TILE_SIZE
         )
         
         # print(v.shape)
         sim = torch.einsum("b i d, b j d -> b i j", q, k)
-        sim = torch.tanh(sim)
+        # sim = torch.tanh(sim)
                 
         avg = torch.mean(sim, dim=2, keepdim=True)
-        attn = (1 / EPSILON) * (sim - avg) + 1/(TILE_SIZE * TILE_SIZE)
+        attn = (1 / EPSILON) * (sim - avg) + 1/(self.TILE_SIZE * self.TILE_SIZE)
                 
         sqr_attn = torch.einsum("b i j, b j s -> b i s", attn, attn)
 
@@ -91,10 +100,10 @@ class Decoder_Idempotent(nn.Module):
             out,
             "(b h w n) (t1 t2) d -> b (n d) (h t1) (w t2)",
             b=b,
-            h=h // TILE_SIZE,
-            w=w // TILE_SIZE,
-            t1=TILE_SIZE,
-            t2=TILE_SIZE,
+            h=h // self.TILE_SIZE,
+            w=w // self.TILE_SIZE,
+            t1=self.TILE_SIZE,
+            t2=self.TILE_SIZE,
         )
 
         return sqr_attn, attn, out

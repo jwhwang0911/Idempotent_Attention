@@ -134,7 +134,7 @@ def train(
         case "AFGSA":
             model = models.AFGSANet(in_ch=3, aux_in_ch=7, base_ch=256).to(device)
         case "Idempotent":
-            model = models.Idempotent_WNet(in_ch=3, aux_in_ch=7, base_ch=256).to(device)
+            model = models.Idempotent_WNet(in_ch=3, aux_in_ch=7, base_ch=256, tile_size=IMAGE_CONFIG["TileSize"]).to(device)
         case "IDP_DEC":
             model = models.IDP_DEC_WNet(in_ch=3, aux_in_ch=7, base_ch=256).to(device)
     
@@ -234,7 +234,7 @@ def train(
             
             # | Logging (Terminal & Wandb) & Validation
             print(
-                "\r\t-Epoch : %d\t Took %f sec \tIteration : %d/%d \t Iter Took : %f sec\tG Loss : %f \tD Loss : %f, IDP Loss : %f"
+                "\r\t-Epoch : %d\t Took %f sec \tIteration : %d/%d \t Iter Took : %f sec\tG Loss : %f \tD Loss : %f, \tIDP Loss : %f\t\t"
                 % (epoch+1, end-start, i_batch + 1, total_iteraions, iter_took, loss_l1.item(), discriminator_loss.item(), loss_idp.item()),
                 end=""
             )
